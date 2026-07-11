@@ -1,8 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'screens/workspace_screen.dart';
+import 'screens/sync_github_screen.dart';
+import 'dart:convert';
 import 'dart:math';
 
 void main() {
@@ -240,8 +241,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadProjects() async {
-    // Simulasi load data (di masa depan akan ambil dari VM)
-    setState(() {
+    setState(() => {
       _projects = [
         {'id': 1, 'name': 'Live Weather Widget', 'desc': 'A gorgeous weather forecasting dashboard'},
         {'id': 2, 'name': 'Browser Startpage', 'desc': 'Startpage with Google and GitHub links'},
@@ -250,7 +250,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _addNewProject() {
-    setState(() {
+    setState(() => {
       _projects.add({
         'id': Random().nextInt(1000),
         'name': 'New App ${_projects.length + 1}',
@@ -260,7 +260,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _deleteProject(int id) {
-    setState(() {
+    setState(() => {
       _projects.removeWhere((p) => p['id'] == id);
     });
   }
@@ -280,6 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('AI Evo Builder'),
         actions: [
           IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+          IconButton(icon: const Icon(Icons.sync), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SyncGitHubScreen()))),
           IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
@@ -334,6 +335,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _tokenController = TextEditingController();
+  final TextEditingController _repoController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -341,10 +343,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
   Future<void> _loadSettings() async {
     final token = await storage.read(key: 'github_token');
-    setState(() { _tokenController.text = token ?? ''; });
+    final repo = await storage.read(key: 'github_repo');
+    setState(() => {
+      _tokenController.text = token ?? '';
+      _repoController.text = repo ?? '';
+    });
   }
   Future<void> _saveSettings() async {
     await storage.write(key: 'github_token', value: _tokenController.text);
+    await storage.write(key: 'github_repo', value: _repoController.text);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Pengaturan tersimpan!')));
   }
   @override
@@ -352,127 +359,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(appBar: AppBar(title: const Text('Settings')),
       body: Padding(padding: const EdgeInsets.all(20),
         child: Column(children: [
-          const Text('Konfigurasi koneksi dan integrasi Anda.'),
+          const Text('Konfigurasi GitHub Anda'),
+          const SizedBox(height: 20),
+          TextField(controller: _repoController, decoration: const InputDecoration(labelText: 'Nama Repositori (contoh: user/repo)', border: OutlineInputBorder())),
           const SizedBox(height: 20),
           TextField(controller: _tokenController, decoration: const InputDecoration(labelText: 'GitHub Token', border: OutlineInputBorder()), obscureText: true),
           const SizedBox(height: 40),
           ElevatedButton(onPressed: _saveSettings, child: const Text('Simpan Pengaturan')),
         ]),
       ),
-    );
-  }
-}
-
-// ================= WORKSPACE (CHAT + PREVIEW) =================
-class WorkspaceScreen extends StatefulWidget {
-  final int projectId;
-  final String projectName;
-  const WorkspaceScreen({super.key, required this.projectId, required this.projectName});
-  @override
-  State<WorkspaceScreen> createState() => _WorkspaceScreenState();
-}
-
-class _WorkspaceScreenState extends State<WorkspaceScreen> {
-  int _currentTab = 0;
-  String _previewHtml = '<h3>Preview akan muncul di sini</h3>';
-  final TextEditingController _controller = TextEditingController();
-  List<Map<String, String>> _messages = [];
-  bool _isLoading = false;
-
-  Future<void> _sendMessage(String prompt) async {
-    if (prompt.isEmpty) return;
-    setState(() {
-      _isLoading = true;
-      _messages.add({'role': 'user', 'content': prompt});
-    });
-    _controller.clear();
-
-    final token = await storage.read(key: 'auth_token');
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/v1/chat/completions'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-        body: jsonEncode({"user_id": await storage.read(key: 'user_id'), "prompt": prompt, "target_platform": "flutter"}),
-      ).timeout(const Duration(seconds: 45));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _previewHtml = data['ui_preview_html'] ?? '<h3>Preview tidak tersedia</h3>';
-          _messages.add({'role': 'ai', 'content': '✅ Aplikasi berhasil dibuat!'});
-        });
-      } else {
-        setState(() {
-          _messages.add({'role': 'ai', 'content': '❌ Error: ${response.statusCode}'});
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _messages.add({'role': 'ai', 'content': '❌ Koneksi error: $e'});
-      });
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.projectName),
-        actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.archive), onPressed: () {}),
-        ],
-      ),
-      body: Column(children: [
-        Container(color: Colors.grey[900], child: Row(children: [
-          Expanded(child: GestureDetector(
-            onTap: () => setState(() => _currentTab = 0),
-            child: Container(padding: const EdgeInsets.symmetric(vertical: 16), decoration: BoxDecoration(border: _currentTab == 0 ? const Border(bottom: BorderSide(color: Colors.blue, width: 2)) : null), child: const Center(child: Text('Chat', style: TextStyle(color: Colors.white))))),
-          ),
-          Expanded(child: GestureDetector(
-            onTap: () => setState(() => _currentTab = 1),
-            child: Container(padding: const EdgeInsets.symmetric(vertical: 16), decoration: BoxDecoration(border: _currentTab == 1 ? const Border(bottom: BorderSide(color: Colors.blue, width: 2)) : null), child: const Center(child: Text('Preview', style: TextStyle(color: Colors.white))))),
-          ),
-        ])),
-        Expanded(child: _currentTab == 0 ? _buildChatPanel() : _buildPreviewPanel()),
-      ]),
-    );
-  }
-
-  Widget _buildChatPanel() {
-    return Padding(padding: const EdgeInsets.all(16.0),
-      child: Column(children: [
-        Expanded(child: ListView.builder(
-          itemCount: _messages.length,
-          itemBuilder: (context, index) {
-            final msg = _messages[index];
-            return Align(
-              alignment: msg['role'] == 'user' ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: msg['role'] == 'user' ? Colors.blue[100] : Colors.grey[200], borderRadius: BorderRadius.circular(10)),
-                child: Text(msg['content'] ?? ""),
-              ),
-            );
-          },
-        )),
-        TextField(
-          controller: _controller,
-          decoration: InputDecoration(
-            hintText: 'Ubah, hapus, atau tambah fitur...',
-            filled: true, fillColor: Colors.grey[900],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            suffixIcon: IconButton(icon: _isLoading ? const CircularProgressIndicator() : const Icon(Icons.send), onPressed: () => _sendMessage(_controller.text)),
-          ),
-        ),
-      ]),
-    );
-  }
-
-  Widget _buildPreviewPanel() {
-    return Container(margin: const EdgeInsets.all(16), decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
-      child: WebViewWidget(controller: WebViewController()..setJavaScriptMode(JavaScriptMode.unrestricted)..loadHtmlString(_previewHtml)),
     );
   }
 }
