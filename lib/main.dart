@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 void main() {
   runApp(const AiEvoBuilderApp());
@@ -14,7 +15,7 @@ class AiEvoBuilderApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0F0F0F),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1E1E1E),
+          backgroundColor: const Color(0xFF1E1E1E),
           foregroundColor: Colors.white,
         ),
       ),
@@ -23,6 +24,7 @@ class AiEvoBuilderApp extends StatelessWidget {
   }
 }
 
+// ================= DASHBOARD =================
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
@@ -30,7 +32,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Evo Core'),
+        title: const Text('AI Evo Builder'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -49,7 +51,7 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Kelola, uji, dan kembangkan aplikasi Flutter Anda.',
+              'Kelola, uji, dan kembangkan aplikasi Anda.',
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 24),
@@ -115,7 +117,14 @@ class DashboardScreen extends StatelessWidget {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.play_circle_fill, color: Color(0xFF4B5EFF)),
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const WorkspaceScreen(projectName: 'Live Weather Widget'),
+                                ),
+                              );
+                            },
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
@@ -130,6 +139,126 @@ class DashboardScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ================= WORKSPACE (CHAT + PREVIEW) =================
+class WorkspaceScreen extends StatefulWidget {
+  final String projectName;
+  const WorkspaceScreen({super.key, required this.projectName});
+
+  @override
+  State<WorkspaceScreen> createState() => _WorkspaceScreenState();
+}
+
+class _WorkspaceScreenState extends State<WorkspaceScreen> {
+  int _currentTab = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.projectName),
+        actions: [
+          IconButton(icon: const Icon(Icons.save), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.archive), onPressed: () {}),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.grey[900],
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _currentTab = 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        border: _currentTab == 0
+                            ? const Border(bottom: BorderSide(color: Colors.blue, width: 2))
+                            : null,
+                      ),
+                      child: const Center(child: Text('Chat', style: TextStyle(color: Colors.white))),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _currentTab = 1),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        border: _currentTab == 1
+                            ? const Border(bottom: BorderSide(color: Colors.blue, width: 2))
+                            : null,
+                      ),
+                      child: const Center(child: Text('Preview', style: TextStyle(color: Colors.white))),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _currentTab == 0
+                ? _buildChatPanel()
+                : _buildPreviewPanel(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatPanel() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              children: const [
+                ListTile(
+                  title: Text('AI: Aplikasi berhasil dibuat!'),
+                  subtitle: Text('Silakan lihat di tab Preview'),
+                ),
+              ],
+            ),
+          ),
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Ubah, hapus, atau tambah fitur...',
+              filled: true,
+              fillColor: Colors.grey[900],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: () {},
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewPanel() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const WebViewWidget(
+        controller: WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..loadHtmlString('<h3>Preview akan muncul di sini</h3>'),
       ),
     );
   }
