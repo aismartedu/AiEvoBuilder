@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'services/api_service.dart';
 
 void main() {
   runApp(const AiEvoBuilderApp());
@@ -15,7 +16,7 @@ class AiEvoBuilderApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0F0F0F),
         appBarTheme: const AppBarTheme(
-          backgroundColor: const Color(0xFF1E1E1E),
+          backgroundColor: Color(0xFF1E1E1E),
           foregroundColor: Colors.white,
         ),
       ),
@@ -155,6 +156,21 @@ class WorkspaceScreen extends StatefulWidget {
 
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
   int _currentTab = 0;
+  String _previewHtml = '<h3>Preview akan muncul di sini</h3>';
+  final TextEditingController _controller = TextEditingController();
+
+  void _sendMessage(String prompt) async {
+    if (prompt.isEmpty) return;
+    try {
+      // Ganti "TOKEN_ANDA" dengan token JWT asli dari login (misal disimpan di storage)
+      final response = await ApiService.chat(prompt, "TOKEN_ANDA");
+      setState(() {
+        _previewHtml = response['ui_preview_html'] ?? '<h3>Preview tidak tersedia</h3>';
+      });
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,6 +245,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             ),
           ),
           TextField(
+            controller: _controller,
             decoration: InputDecoration(
               hintText: 'Ubah, hapus, atau tambah fitur...',
               filled: true,
@@ -239,7 +256,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               ),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.send),
-                onPressed: () {},
+                onPressed: () => _sendMessage(_controller.text),
               ),
             ),
           ),
@@ -255,10 +272,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         border: Border.all(color: Colors.grey),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const WebViewWidget(
+      child: WebViewWidget(
         controller: WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..loadHtmlString('<h3>Preview akan muncul di sini</h3>'),
+          ..loadHtmlString(_previewHtml),
       ),
     );
   }
