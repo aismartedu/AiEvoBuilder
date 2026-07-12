@@ -48,6 +48,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     try {
       final archive = Archive();
       final content = utf8.encode('// Placeholder code');
+      // Perbaikan: argumen kedua adalah panjang data (int), bukan data itu sendiri
       archive.addFile(ArchiveFile('lib/main.dart', content.length, content));
       
       final tempDir = await getTemporaryDirectory();
