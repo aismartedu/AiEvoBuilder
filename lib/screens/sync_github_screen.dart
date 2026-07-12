@@ -16,7 +16,7 @@ class _SyncGitHubScreenState extends State<SyncGitHubScreen> {
   Future<void> _syncToGitHub() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
-    setState(() => {
+    setState(() {
       _isLoading = false;
       _pendingFiles.clear();
     });
