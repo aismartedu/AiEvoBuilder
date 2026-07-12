@@ -73,18 +73,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final token = await storage.read(key: 'auth_token');
     try {
       final List<Map<String, String>> history = _messages.map((m) => {'role': m['role']!, 'content': m['content']!}).toList();
-      final String bodyString = jsonEncode({
+      final Map<String, dynamic> payload = {
         "user_id": await storage.read(key: 'user_id'),
         "messages": history,
         "target_platform": "flutter"
-      });
-      // ignore: extra_positional_arguments_could_be_named
-      final response = await http.post(
-        Uri.parse('$baseUrl/v1/chat/completions'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-        body: bodyString,
-      ).timeout(const Duration(seconds: 45));
-
+      };
+      
+      final response = await _postToChat(payload, token);
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         String resultMessage = "✅ Aplikasi berhasil dibuat!\n\n";
@@ -106,6 +102,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<http.Response> _postToChat(Map<String, dynamic> payload, String token) async {
+    return await http.post(
+      Uri.parse('$baseUrl/v1/chat/completions'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      body: jsonEncode(payload),
+    ).timeout(const Duration(seconds: 45));
   }
 
   void _refreshPreview() {
