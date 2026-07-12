@@ -1,4 +1,4 @@
-package com.aismartedu.aievo_builder
+package com.example.aievobuilder
 
 import io.flutter.embedding.android.FlutterActivity
 
