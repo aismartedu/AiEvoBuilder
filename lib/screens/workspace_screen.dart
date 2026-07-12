@@ -47,7 +47,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Future<void> _exportZip() async {
     try {
       final archive = Archive();
-      archive.addFile(ArchiveFile('lib/main.dart', 0, utf8.encode('// Placeholder code')));
+      final content = utf8.encode('// Placeholder code');
+      archive.addFile(ArchiveFile('lib/main.dart', content.length, content));
+      
       final tempDir = await getTemporaryDirectory();
       final zipPath = '${tempDir.path}/${widget.projectName}.zip';
       final outputStream = File(zipPath).openWrite();
@@ -71,33 +73,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final token = await storage.read(key: 'auth_token');
     try {
       final List<Map<String, String>> history = _messages.map((m) => {'role': m['role']!, 'content': m['content']!}).toList();
+      final String bodyString = jsonEncode({
+        "user_id": await storage.read(key: 'user_id'),
+        "messages": history,
+        "target_platform": "flutter"
+      });
+      // ignore: extra_positional_arguments_could_be_named
       final response = await http.post(
         Uri.parse('$baseUrl/v1/chat/completions'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-        body: jsonEncode({
-          "user_id": await storage.read(key: 'user_id'),
-          "messages": history,
-          "target_platform": "flutter"
-        }),
+        body: bodyString,
       ).timeout(const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        List<String> builtFiles = [];
-        if (data['files'] != null) {
-          for (var file in data['files']) {
-            builtFiles.add(file['path']);
-          }
-        }
         String resultMessage = "✅ Aplikasi berhasil dibuat!\n\n";
-        if (builtFiles.isNotEmpty) {
-          resultMessage += "File yang dibuat:\n";
-          for (var f in builtFiles) {
-            resultMessage += "- $f\n";
-          }
-        }
-        resultMessage += "\nSilakan lihat hasil di tab Preview.\n\nApakah ada yang perlu diubah atau ditambahkan?";
-
         setState(() {
           _previewHtml = data['ui_preview_html'] ?? '<h3>Preview tidak tersedia</h3>';
           _messages.removeWhere((m) => m['role'] == 'ai');
