@@ -48,7 +48,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     try {
       final archive = Archive();
       final content = utf8.encode('// Placeholder code');
-      // Perbaikan: argumen kedua adalah panjang data (int), bukan data itu sendiri
       archive.addFile(ArchiveFile('lib/main.dart', content.length, content));
       
       final tempDir = await getTemporaryDirectory();
@@ -80,8 +79,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         "target_platform": "flutter"
       };
       
-      final response = await _postToChat(payload, token);
-      
+      final String bodyString = jsonEncode(payload);
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/chat/completions'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: bodyString,
+      ).timeout(const Duration(seconds: 45));
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         String resultMessage = "✅ Aplikasi berhasil dibuat!\n\n";
@@ -103,14 +107,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  Future<http.Response> _postToChat(Map<String, dynamic> payload, String token) async {
-    return await http.post(
-      Uri.parse('$baseUrl/v1/chat/completions'),
-      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-      body: jsonEncode(payload),
-    ).timeout(const Duration(seconds: 45));
   }
 
   void _refreshPreview() {
