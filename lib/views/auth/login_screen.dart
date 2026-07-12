@@ -16,23 +16,40 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-    setState(() => _isLoading = true);
-    final res = await AuthService.login(_email.text, _password.text);
-    setState(() => _isLoading = false);
-    
-    if (res['access_token'] != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('auth_token', res['access_token']);
-      await prefs.setString('user_id', res['user_id'].toString());
-      await prefs.setString('user_name', res['full_name']);
-      
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+    if (_email.text.isEmpty || _password.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email dan password harus diisi!')),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['detail'] ?? 'Login gagal')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final res = await AuthService.login(_email.text, _password.text);
+      setState(() => _isLoading = false);
+      
+      if (res['access_token'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', res['access_token']);
+        await prefs.setString('user_id', res['user_id'].toString());
+        await prefs.setString('user_name', res['full_name']);
+        
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      } else {
+        String errorMsg = res['detail'] ?? 'Login gagal. Cek email/password Anda.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg)),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Koneksi error: Periksa jaringan Anda.')),
+      );
     }
   }
 
