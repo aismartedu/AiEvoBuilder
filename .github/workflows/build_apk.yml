@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check directory structure
+        run: ls -la && pwd
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -18,7 +20,6 @@ jobs:
           channel: stable
       - name: Enter project directory and build
         run: |
-          ls -la
           flutter clean
           flutter pub get
           flutter build apk --release
