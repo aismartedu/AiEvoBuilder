@@ -7,9 +7,10 @@ import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const String baseUrl = "https://app.aismartedu.my.id";
-const storage = FlutterSecureStorage();
+final storage = FlutterSecureStorage();
 
 class WorkspaceScreen extends StatefulWidget {
   final int projectId;
