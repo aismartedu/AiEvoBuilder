@@ -10,7 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 const String baseUrl = "https://app.aismartedu.my.id";
-final storage = const FlutterSecureStorage();
+const storage = FlutterSecureStorage();
 
 class WorkspaceScreen extends StatefulWidget {
   final int projectId;
@@ -24,7 +24,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   int _currentTab = 0;
   String _previewHtml = '<h3>Preview akan muncul di sini</h3>';
   final TextEditingController _controller = TextEditingController();
-  List<Map<String, String>> _messages = [];
+  final List<Map<String, String>> _messages = [];
   bool _isLoading = false;
   late final WebViewController _webViewController;
 
@@ -41,6 +41,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       'messages': _messages,
       'preview': _previewHtml,
     }));
+    
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('💾 Proyek tersimpan!')));
   }
 
@@ -54,10 +56,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       final zipPath = '${tempDir.path}/${widget.projectName}.zip';
       final outputStream = File(zipPath).openWrite();
       final encoder = ZipEncoder();
-      encoder.encode(archive, outputStream);
+      
+      outputStream.add(encoder.encode(archive)!);
       await outputStream.close();
+      
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('📦 ZIP berhasil dibuat di: $zipPath')));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ Gagal ekspor: $e')));
     }
   }
@@ -70,22 +76,24 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     });
     _controller.clear();
 
-    final token = await storage.read(key: 'auth_token');
+    // Memastikan token dan userId tidak null dengan ?? ''
+    final String token = await storage.read(key: 'auth_token') ?? '';
+    final String userId = await storage.read(key: 'user_id') ?? '';
+
     try {
-      final List<Map<String, String>> history = _messages.map((m) => {'role': m['role']!, 'content': m['content']!}).toList();
+      final List<Map<String, String>> history = _messages.map((m) => {
+        'role': m['role'] ?? '', 
+        'content': m['content'] ?? ''
+      }).toList();
+      
       final Map<String, dynamic> payload = {
-        "user_id": await storage.read(key: 'user_id'),
+        "user_id": userId,
         "messages": history,
         "target_platform": "flutter"
       };
       
-      final String bodyString = jsonEncode(payload);
-      final response = await http.post(
-        Uri.parse('$baseUrl/v1/chat/completions'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-        body: bodyString,
-      ).timeout(const Duration(seconds: 45));
-
+      final response = await _httpPost(payload, token);
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         String resultMessage = "✅ Aplikasi berhasil dibuat!\n\n";
@@ -107,6 +115,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<http.Response> _httpPost(Map<String, dynamic> payload, String token) async {
+    final url = Uri.parse('$baseUrl/v1/chat/completions');
+    final headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
+    final body = jsonEncode(payload);
+    return await http.post(url, headers: headers, body: body).timeout(const Duration(seconds: 45));
   }
 
   void _refreshPreview() {
