@@ -10,7 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 const String baseUrl = "https://app.aismartedu.my.id";
-const storage = FlutterSecureStorage();
+final storage = const FlutterSecureStorage();
 
 class WorkspaceScreen extends StatefulWidget {
   final int projectId;
@@ -24,7 +24,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   int _currentTab = 0;
   String _previewHtml = '<h3>Preview akan muncul di sini</h3>';
   final TextEditingController _controller = TextEditingController();
-  final List<Map<String, String>> _messages = [];
+  List<Map<String, String>> _messages = [];
   bool _isLoading = false;
   late final WebViewController _webViewController;
 
@@ -41,8 +41,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       'messages': _messages,
       'preview': _previewHtml,
     }));
-    
-    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('💾 Proyek tersimpan!')));
   }
 
@@ -56,14 +54,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       final zipPath = '${tempDir.path}/${widget.projectName}.zip';
       final outputStream = File(zipPath).openWrite();
       final encoder = ZipEncoder();
-      
       outputStream.add(encoder.encode(archive)!);
       await outputStream.close();
-      
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('📦 ZIP berhasil dibuat di: $zipPath')));
     } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ Gagal ekspor: $e')));
     }
   }
@@ -76,16 +70,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     });
     _controller.clear();
 
-    // Memastikan token dan userId tidak null dengan ?? ''
-    final String token = await storage.read(key: 'auth_token') ?? '';
-    final String userId = await storage.read(key: 'user_id') ?? '';
+    final token = await storage.read(key: 'auth_token');
+    final userId = await storage.read(key: 'user_id');
+    
+    if (token == null || userId == null) {
+      setState(() {
+        _messages.add({'role': 'ai', 'content': '❌ Anda belum login. Silakan login ulang.'});
+        _isLoading = false;
+      });
+      return;
+    }
 
     try {
-      final List<Map<String, String>> history = _messages.map((m) => {
-        'role': m['role'] ?? '', 
-        'content': m['content'] ?? ''
-      }).toList();
-      
+      final List<Map<String, String>> history = _messages.map((m) => {'role': m['role']!, 'content': m['content'] ?? ''}).toList();
       final Map<String, dynamic> payload = {
         "user_id": userId,
         "messages": history,
@@ -105,7 +102,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         });
       } else {
         setState(() {
-          _messages.add({'role': 'ai', 'content': '❌ Error: ${response.statusCode}'});
+          _messages.add({'role': 'ai', 'content': '❌ Error: ${response.statusCode} - ${response.body}'});
         });
       }
     } catch (e) {
