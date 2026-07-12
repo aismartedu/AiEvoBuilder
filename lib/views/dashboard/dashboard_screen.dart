@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../config/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/auth_wrapper.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -19,14 +18,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadUser() async {
-    final name = await storage.read(key: 'user_name') ?? 'User';
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('user_name') ?? 'User';
     setState(() => _userName = name);
   }
 
   Future<void> _logout() async {
-    await storage.delete(key: 'auth_token');
-    await storage.delete(key: 'user_id');
-    await storage.delete(key: 'user_name');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_id');
+    await prefs.remove('user_name');
     if (!mounted) return;
     Navigator.pushReplacement(
       context,

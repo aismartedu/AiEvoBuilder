@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 import '../../config/constants.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -21,9 +21,10 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
     
     if (res['access_token'] != null) {
-      await storage.write(key: 'auth_token', value: res['access_token']);
-      await storage.write(key: 'user_id', value: res['user_id'].toString());
-      await storage.write(key: 'user_name', value: res['full_name']);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', res['access_token']);
+      await prefs.setString('user_id', res['user_id'].toString());
+      await prefs.setString('user_name', res['full_name']);
       
       if (!mounted) return;
       Navigator.pushReplacement(

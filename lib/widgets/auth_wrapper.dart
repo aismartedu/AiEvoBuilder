@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../views/auth/login_screen.dart';
 import '../views/dashboard/dashboard_screen.dart';
-import '../config/constants.dart';
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -18,7 +17,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _checkLogin();
   }
   Future<void> _checkLogin() async {
-    final token = await storage.read(key: 'auth_token');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
     setState(() { _isLoggedIn = token != null; _isLoading = false; });
   }
   @override
