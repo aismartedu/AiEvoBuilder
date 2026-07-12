@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'views/auth/login_screen.dart';
+import 'views/dashboard/dashboard_screen.dart';
 import 'config/constants.dart';
 
 void main() {
@@ -45,13 +46,5 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     return _isLoggedIn ? const DashboardScreen() : const LoginScreen();
-  }
-}
-
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text('Dashboard')), body: const Center(child: Text('Dashboard')));
   }
 }
