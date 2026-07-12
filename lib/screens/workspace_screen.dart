@@ -90,7 +90,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final Map<String, dynamic> payload = {
       "user_id": userId,
       "messages": history,
-      "target_platform": "react"  // <--- Target platform diubah ke react
+      "target_platform": "react"
     };
 
     try {
@@ -99,19 +99,31 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          // Preview interaktif
           _previewHtml = data['ui_preview_html'] ?? '<h3>Preview tidak tersedia</h3>';
           _webViewController.loadHtmlString(_previewHtml);
           
-          // Action History (Daftar file)
-          if (data['files'] != null) {
-            for (var file in data['files']) {
+          // === PERBAIKAN: Cek tipe data files ===
+          var files = data['files'];
+          if (files is List) {
+            // Jika files adalah List/Array
+            for (var file in files) {
+              if (file is Map && file.containsKey('path')) {
+                _fileHistory.add({
+                  'path': file['path'],
+                  'status': '✅'
+                });
+              }
+            }
+          } else if (files is Map) {
+            // Jika files adalah Map/Object (bentuk alternatif)
+            files.forEach((path, content) {
               _fileHistory.add({
-                'path': file['path'],
+                'path': path,
                 'status': '✅'
               });
-            }
+            });
           }
+
           _messages.add({'role': 'ai', 'content': '✅ Aplikasi berhasil dibuat! Silakan cek Preview.'});
           _isLoading = false;
         });
