@@ -25,6 +25,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   String _previewHtml = '<h3>Preview akan muncul di sini</h3>';
   final TextEditingController _controller = TextEditingController();
   List<Map<String, String>> _messages = [];
+  List<Map<String, dynamic>> _fileHistory = [];
   bool _isLoading = false;
   late final WebViewController _webViewController;
 
@@ -64,26 +65,18 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Future<void> _sendMessage(String prompt) async {
     if (prompt.isEmpty) return;
-    
-    // === SIMULASI PROGRES CHAT ===
     setState(() {
       _isLoading = true;
       _messages.add({'role': 'user', 'content': prompt});
+      _fileHistory.clear();
     });
     _controller.clear();
 
-    // Tampilkan progress awal
-    setState(() {
-      _messages.add({'role': 'ai', 'content': '🔍 Menganalisis struktur folder...'});
-    });
-    await Future.delayed(const Duration(seconds: 1));
-
-    // 1. Siapkan token dan payload
     final token = await storage.read(key: 'auth_token');
     final userId = await storage.read(key: 'user_id');
     if (token == null || userId == null) {
       setState(() {
-        _messages.add({'role': 'ai', 'content': '❌ Anda belum login. Silakan login ulang.'});
+        _messages.add({'role': 'ai', 'content': '❌ Anda belum login.'});
         _isLoading = false;
       });
       return;
@@ -97,7 +90,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final Map<String, dynamic> payload = {
       "user_id": userId,
       "messages": history,
-      "target_platform": "flutter"
+      "target_platform": "react"  // <--- Target platform diubah ke react
     };
 
     try {
@@ -106,14 +99,25 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
+          // Preview interaktif
           _previewHtml = data['ui_preview_html'] ?? '<h3>Preview tidak tersedia</h3>';
-          _messages.add({'role': 'ai', 'content': '✅ Aplikasi berhasil dibuat! Silakan cek Preview.'});
           _webViewController.loadHtmlString(_previewHtml);
+          
+          // Action History (Daftar file)
+          if (data['files'] != null) {
+            for (var file in data['files']) {
+              _fileHistory.add({
+                'path': file['path'],
+                'status': '✅'
+              });
+            }
+          }
+          _messages.add({'role': 'ai', 'content': '✅ Aplikasi berhasil dibuat! Silakan cek Preview.'});
           _isLoading = false;
         });
       } else {
         setState(() {
-          _messages.add({'role': 'ai', 'content': '❌ Error: ${response.statusCode} - ${response.body}'});
+          _messages.add({'role': 'ai', 'content': '❌ Error: ${response.statusCode}'});
           _isLoading = false;
         });
       }
@@ -166,6 +170,25 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Widget _buildChatPanel() {
     return Padding(padding: const EdgeInsets.all(16.0),
       child: Column(children: [
+        // Action History ala AI Studio
+        if (_fileHistory.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(12)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('📝 Action History', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              ..._fileHistory.map((f) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(children: [
+                  Text(f['path'], style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const Spacer(),
+                  Text(f['status'], style: const TextStyle(color: Colors.green, fontSize: 12)),
+                ]),
+              )).toList(),
+            ]),
+          ),
         Expanded(child: ListView.builder(
           itemCount: _messages.length,
           itemBuilder: (context, index) {
