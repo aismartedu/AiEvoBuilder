@@ -1,5 +1,3 @@
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -32,7 +30,6 @@ class AiEvoBuilderApp extends StatelessWidget {
   }
 }
 
-// ================= AUTH WRAPPER =================
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
   @override
@@ -57,7 +54,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 }
 
-// ================= LOGIN SCREEN =================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -116,7 +112,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// ================= REGISTER SCREEN =================
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
   @override
@@ -171,7 +166,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-// ================= FORGOT PASSWORD SCREEN =================
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
   @override
@@ -219,7 +213,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 }
 
-// ================= DASHBOARD =================
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
   @override
@@ -243,7 +236,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadProjects() async {
-    setState(() => {
+    setState(() {
       _projects = [
         {'id': 1, 'name': 'Live Weather Widget', 'desc': 'A gorgeous weather forecasting dashboard'},
         {'id': 2, 'name': 'Browser Startpage', 'desc': 'Startpage with Google and GitHub links'},
@@ -252,7 +245,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _addNewProject() {
-    setState(() => {
+    setState(() {
       _projects.add({
         'id': Random().nextInt(1000),
         'name': 'New App ${_projects.length + 1}',
@@ -262,7 +255,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _deleteProject(int id) {
-    setState(() => {
+    setState(() {
       _projects.removeWhere((p) => p['id'] == id);
     });
   }
@@ -328,7 +321,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-// ================= SETTINGS SCREEN =================
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
   @override
@@ -346,7 +338,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final token = await storage.read(key: 'github_token');
     final repo = await storage.read(key: 'github_repo');
-    setState(() => {
+    setState(() {
       _tokenController.text = token ?? '';
       _repoController.text = repo ?? '';
     });
