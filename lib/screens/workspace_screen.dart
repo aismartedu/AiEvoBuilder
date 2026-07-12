@@ -64,15 +64,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Future<void> _sendMessage(String prompt) async {
     if (prompt.isEmpty) return;
+    
+    // === SIMULASI PROGRES CHAT ===
     setState(() {
       _isLoading = true;
       _messages.add({'role': 'user', 'content': prompt});
     });
     _controller.clear();
 
+    // Tampilkan progress awal
+    setState(() {
+      _messages.add({'role': 'ai', 'content': '🔍 Menganalisis struktur folder...'});
+    });
+    await Future.delayed(const Duration(seconds: 1));
+
+    // 1. Siapkan token dan payload
     final token = await storage.read(key: 'auth_token');
     final userId = await storage.read(key: 'user_id');
-    
     if (token == null || userId == null) {
       setState(() {
         _messages.add({'role': 'ai', 'content': '❌ Anda belum login. Silakan login ulang.'});
@@ -81,36 +89,39 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       return;
     }
 
+    final List<Map<String, String>> history = _messages
+        .where((m) => m['role'] == 'user' || m['role'] == 'ai')
+        .map((m) => {'role': m['role']!, 'content': m['content'] ?? ''})
+        .toList();
+
+    final Map<String, dynamic> payload = {
+      "user_id": userId,
+      "messages": history,
+      "target_platform": "flutter"
+    };
+
     try {
-      final List<Map<String, String>> history = _messages.map((m) => {'role': m['role']!, 'content': m['content'] ?? ''}).toList();
-      final Map<String, dynamic> payload = {
-        "user_id": userId,
-        "messages": history,
-        "target_platform": "flutter"
-      };
-      
       final response = await _httpPost(payload, token);
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        String resultMessage = "✅ Aplikasi berhasil dibuat!\n\n";
         setState(() {
           _previewHtml = data['ui_preview_html'] ?? '<h3>Preview tidak tersedia</h3>';
-          _messages.removeWhere((m) => m['role'] == 'ai');
-          _messages.add({'role': 'ai', 'content': resultMessage});
+          _messages.add({'role': 'ai', 'content': '✅ Aplikasi berhasil dibuat! Silakan cek Preview.'});
           _webViewController.loadHtmlString(_previewHtml);
+          _isLoading = false;
         });
       } else {
         setState(() {
           _messages.add({'role': 'ai', 'content': '❌ Error: ${response.statusCode} - ${response.body}'});
+          _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
         _messages.add({'role': 'ai', 'content': '❌ Koneksi error: $e'});
+        _isLoading = false;
       });
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
