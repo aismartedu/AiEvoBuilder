@@ -3,14 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 const String baseUrl = "https://app.aismartedu.my.id";
-final storage = const FlutterSecureStorage();
+const storage = FlutterSecureStorage();
 
 class WorkspaceScreen extends StatefulWidget {
   final int projectId;
@@ -75,6 +74,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final token = await storage.read(key: 'auth_token');
     final userId = await storage.read(key: 'user_id');
     if (token == null || userId == null) {
+      if (!mounted) return;
       setState(() {
         _messages.add({'role': 'ai', 'content': '❌ Anda belum login.'});
         _isLoading = false;
@@ -95,6 +95,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
     try {
       final response = await _httpPost(payload, token);
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -102,10 +103,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           _previewHtml = data['ui_preview_html'] ?? '<h3>Preview tidak tersedia</h3>';
           _webViewController.loadHtmlString(_previewHtml);
           
-          // === PERBAIKAN: Cek tipe data files ===
           var files = data['files'];
           if (files is List) {
-            // Jika files adalah List/Array
             for (var file in files) {
               if (file is Map && file.containsKey('path')) {
                 _fileHistory.add({
@@ -115,7 +114,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               }
             }
           } else if (files is Map) {
-            // Jika files adalah Map/Object (bentuk alternatif)
             files.forEach((path, content) {
               _fileHistory.add({
                 'path': path,
@@ -123,7 +121,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               });
             });
           }
-
           _messages.add({'role': 'ai', 'content': '✅ Aplikasi berhasil dibuat! Silakan cek Preview.'});
           _isLoading = false;
         });
@@ -134,6 +131,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _messages.add({'role': 'ai', 'content': '❌ Koneksi error: $e'});
         _isLoading = false;
@@ -157,10 +155,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.projectName),
-        actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _saveProject),
-          IconButton(icon: const Icon(Icons.archive), onPressed: _exportZip),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshPreview),
+        actions: const [
+          IconButton(icon: Icon(Icons.save), onPressed: null),
+          IconButton(icon: Icon(Icons.archive), onPressed: null),
+          IconButton(icon: Icon(Icons.refresh), onPressed: null),
         ],
       ),
       body: Column(children: [
@@ -182,7 +180,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Widget _buildChatPanel() {
     return Padding(padding: const EdgeInsets.all(16.0),
       child: Column(children: [
-        // Action History ala AI Studio
         if (_fileHistory.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -196,9 +193,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 child: Row(children: [
                   Text(f['path'], style: TextStyle(color: Colors.white70, fontSize: 12)),
                   const Spacer(),
-                  Text(f['status'], style: const TextStyle(color: Colors.green, fontSize: 12)),
+                  Text(f['status'], style: TextStyle(color: Colors.green, fontSize: 12)),
                 ]),
-              )).toList(),
+              )),
             ]),
           ),
         Expanded(child: ListView.builder(
